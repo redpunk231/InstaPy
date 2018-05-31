@@ -189,8 +189,11 @@ def add_user_to_blacklist(browser, username, campaign, action, logger, logfolder
     logger.info('--> {} added to blacklist for {} campaign (action: {})'
                 .format(username, campaign, action))
 
-
 def get_active_users(browser, username, posts, boundary, logger):
+    active_users = get_active_users_rate(browser, username, posts, boundary, logger)
+    return list(active_users.values())
+
+def get_active_users_rate(browser, username, posts, boundary, logger):
     """Returns a list with usernames who liked the latest n posts"""
 
     user_link = 'https://www.instagram.com/{}/'.format(username)
@@ -210,7 +213,7 @@ def get_active_users(browser, username, posts, boundary, logger):
     browser.find_element_by_xpath(
         "(//div[contains(@class, '_si7dy')])[1]").click()
 
-    active_users = []
+    active_users = {}
     sc_rolled = 0
     start_time = time.time()
     too_many_requests = 0  # this will help to prevent misbehaviours when you request the list of active users repeatedly within less than 10 min of breaks
@@ -308,7 +311,9 @@ def get_active_users(browser, username, posts, boundary, logger):
 
         if len(tmp_list) is not 0:
             for user in tmp_list:
-                active_users.append(user.text)
+                if user.text not in active_users:
+                    active_users[user.text] = 0
+                active_users[user.text] += 1
 
         sleep_actual(1)
         # if not reached posts(parameter) value, continue
@@ -324,8 +329,6 @@ def get_active_users(browser, username, posts, boundary, logger):
     real_time = time.time()
     diff_in_minutes = int((real_time - start_time) / 60)
     diff_in_seconds = int((real_time - start_time) % 60)
-    # delete duplicated users
-    active_users = list(set(active_users))
     logger.info(
         "Gathered total of {} unique active followers from the latest {} posts in {} minutes and {} seconds".format(len(active_users),
                                                                                                      posts,

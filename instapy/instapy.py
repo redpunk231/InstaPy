@@ -33,6 +33,7 @@ from .login_util import login_user
 from .print_log_writer import log_follower_num
 from .settings import Settings
 from .time_util import sleep
+from .time_util import sleep_actual
 from .time_util import set_sleep_percentage
 from .util import get_active_users
 from .util import validate_username
@@ -163,6 +164,9 @@ class InstaPy:
 
         self.aborting = False
 
+        self.last_action_like = None
+        self.like_gap = 30
+
         # Assign logger
         self.logger = self.get_instapy_logger(show_logs)
 
@@ -173,6 +177,29 @@ class InstaPy:
             error_msg = ('Sorry, Record Activity is not working on Windows. '
                          'We\'re working to fix this soon!')
             self.logger.warning(error_msg)
+
+    def set_action_gaps(self, like_gap = None):
+        if like_gap:
+            self.like_gap = like_gap
+
+    def like_image_with_gap(self, user_name):
+        if self.last_action_like:
+            delta = (datetime.now() - self.last_action_like).total_seconds()
+            if delta < self.like_gap:
+                gap = self.like_gap - delta + random.random() * 15
+                self.logger.info('Wait {0} seconds for like image'.format(gap))
+                sleep_actual(gap)
+
+        liked = like_image(self.browser,
+                           user_name,
+                           self.blacklist,
+                           self.logger,
+                           self.logfolder)
+
+        if liked:
+            self.last_action_like = datetime.now()
+
+        return liked
 
     def get_instapy_logger(self, show_logs):
         """
@@ -825,11 +852,7 @@ class InstaPy:
                             web_adress_navigator(self.browser, link)
 
                         #try to like
-                        liked = like_image(self.browser,
-                                           user_name,
-                                           self.blacklist,
-                                           self.logger,
-                                           self.logfolder)
+                        liked = self.like_image_with_gap(user_name)
 
                         if liked:
                             liked_img += 1
@@ -1173,11 +1196,7 @@ class InstaPy:
                             web_adress_navigator(self.browser, link)
 
                         #try to like
-                        liked = like_image(self.browser,
-                                           user_name,
-                                           self.blacklist,
-                                           self.logger,
-                                           self.logfolder)
+                        liked = self.like_image_with_gap(user_name)
 
                         if liked:
 
@@ -1389,11 +1408,7 @@ class InstaPy:
                         self.liking_approved = verify_liking(self.browser, self.max_likes, self.min_likes, self.logger)
 
                     if not inappropriate and self.liking_approved:
-                        liked = like_image(self.browser,
-                                           user_name,
-                                           self.blacklist,
-                                           self.logger,
-                                           self.logfolder)
+                        liked = self.like_image_with_gap(user_name)
 
                         if liked:
                             total_liked_img += 1
@@ -1585,11 +1600,7 @@ class InstaPy:
                             self.liking_approved = verify_liking(self.browser, self.max_likes, self.min_likes, self.logger)
                         
                         if self.do_like and liking and self.liking_approved:
-                            liked = like_image(self.browser,
-                                               user_name,
-                                               self.blacklist,
-                                               self.logger,
-                                               self.logfolder)
+                            liked = self.like_image_with_gap(user_name)
                         else:
                             liked = True
 
@@ -2210,11 +2221,7 @@ class InstaPy:
                                     web_adress_navigator(self.browser, link)
 
                                 #try to like
-                                liked = like_image(self.browser,
-                                                   user_name,
-                                                   self.blacklist,
-                                                   self.logger,
-                                                   self.logfolder)
+                                liked = self.like_image_with_gap(user_name)
 
                                 if liked:
                                     username = (self.browser.
